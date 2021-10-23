@@ -16,22 +16,60 @@ import (
 	"github.com/spf13/pflag"
 )
 
-func execInChroot(debianArch string, cmds []string) error {
-	for _, c := range cmds {
-		cmd := exec.Command("chroot", append([]string{path.Join("/var", "lib", "bagccgop", debianArch+"-chroot"), "/bin/bash", "-c"}, c)...) // This is always a UNIX path, which is why `filepath` is not being used
+func getChrootLocation(debianArch string) string {
+	return path.Join("/var", "lib", "bagccgop", debianArch+"-chroot") // This is always a UNIX path hence `filepath` is not being used
+}
+
+func mountChroot(debianArch string) error {
+	chrootLocation := getChrootLocation(debianArch)
+	pwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("could not get home directory: %v", err)
+	}
+
+	for _, c := range [][]string{
+		{"-o", "bind", "/dev", path.Join(chrootLocation, "dev")},
+		{"-o", "bind", "/proc", path.Join(chrootLocation, "proc")},
+		{"-o", "bind", pwd, path.Join(chrootLocation, "data")},
+	} {
+		cmd := exec.Command("mount", c...)
 
 		// Capture stdout and stderr
-		var buildStdout, buildStderr bytes.Buffer
-		cmd.Stdout = &buildStdout
-		cmd.Stderr = &buildStderr
+		var stdout, stderr bytes.Buffer
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
 
 		// Start the build
 		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("could not install packages: err=%v, stdout=%v, stderr=%v", err, buildStdout.String(), buildStderr.String())
+			return fmt.Errorf("could not mount chroot: err=%v, stdout=%v, stderr=%v", err, stdout.String(), stderr.String())
 		}
 	}
 
 	return nil
+}
+
+func execInChroot(debianArch string, cmds []string) error {
+	chrootLocation := getChrootLocation(debianArch)
+
+	for _, c := range cmds {
+		cmd := exec.Command("chroot", append([]string{chrootLocation, "/bin/bash", "-c"}, c)...)
+
+		// Capture stdout and stderr
+		var stdout, stderr bytes.Buffer
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+
+		// Start the build
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("could not install packages: err=%v, stdout=%v, stderr=%v", err, stdout.String(), stderr.String())
+		}
+	}
+
+	return nil
+}
+
+func getPkgNameForArch(pkg string, debianArch string) string {
+	return pkg + ":" + debianArch
 }
 
 type Platform struct {
@@ -179,8 +217,9 @@ func main() {
 	// plainFlag := pflag.BoolP("plain", "p", false, "Sets GOARCH, GOARCH, CC, GCCGO, GOFLAGS and DST and leaves the rest up to you (see example usage)")
 
 	// prepareCommandFlag := pflag.StringP("prepare", "r", "", "Command to run before running the main command; will have only CC set (i.e. for code generation)")
-	packagesFlag := pflag.StringArrayP("packages", "a", []string{}, "Comma-seperated list of Debian packages to install for the selected architectures")
-	manualPackagesFlag := pflag.StringArrayP("manualPackages", "m", []string{}, "Comma-seperated list of Debian packages to manually install for the selected architectures (i.e. those which would break the dependency graph)")
+	hostPackagesFlag := pflag.StringSliceP("hostPackages", "s", []string{}, "Comma-seperated list of Debian packages to install for the host architecture")
+	packagesFlag := pflag.StringSliceP("packages", "a", []string{}, "Comma-seperated list of Debian packages to install for the selected architectures")
+	manualPackagesFlag := pflag.StringSliceP("manualPackages", "m", []string{}, "Comma-seperated list of Debian packages to manually install for the selected architectures (i.e. those which would break the dependency graph)")
 
 	pflag.Parse()
 
@@ -247,15 +286,31 @@ func main() {
 			// Continue if platform is enabled
 			log.Printf("%v %v/%v (%v)", color.New(color.FgGreen).SprintFunc()("building"), color.New(color.FgCyan).SprintFunc()(platform.GoOS), color.New(color.FgMagenta).SprintFunc()(platform.GoArch), output)
 
+			// Mount chroot
+			if err := mountChroot(platform.DebianArch); err != nil {
+				log.Fatalf("could not mount chroot for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
+			}
+
+			// Install host packages
+			for _, pkg := range *hostPackagesFlag {
+				if err := execInChroot(platform.DebianArch, []string{`apt install -y ` + shellescape.Quote(pkg)}); err != nil {
+					log.Fatalf("could not install host packages for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
+				}
+			}
+
 			// Install packages
-			for _, pkg := range *packagesFlag {
+			for _, rawPkg := range *packagesFlag {
+				pkg := getPkgNameForArch(rawPkg, platform.DebianArch)
+
 				if err := execInChroot(platform.DebianArch, []string{`apt install -y ` + shellescape.Quote(pkg)}); err != nil {
 					log.Fatalf("could not install packages for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
 				}
 			}
 
 			// Install manual packages
-			for _, pkg := range *manualPackagesFlag {
+			for _, rawPkg := range *manualPackagesFlag {
+				pkg := getPkgNameForArch(rawPkg, platform.DebianArch)
+
 				if err := execInChroot(platform.DebianArch, []string{
 					`mkdir -p /tmp/bagccgop-packages/` + shellescape.Quote(pkg),
 					`cd /tmp/bagccgop-packages/` + shellescape.Quote(pkg) + ` && apt download ` + shellescape.Quote(pkg),
