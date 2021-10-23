@@ -2,7 +2,11 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"os/exec"
+
+	"github.com/spf13/pflag"
 )
 
 type Platform struct {
@@ -128,37 +132,38 @@ func getSystemShell() []string {
 }
 
 func main() {
-	// 	// Define usage
-	// 	pflag.Usage = func() {
-	// 		fmt.Printf(`Build for all gccgo-supported platforms by default, disable those which you don't want (bagop with CGo support).
-	// Example usage: %s -b mybin -x '(linux/alpha|linux/ppc64el)' -j "$(nproc)" 'main.go'
-	// Example usage (with plain flag): %s -b mybin -x '(linux/alpha|linux/ppc64el)' -j "$(nproc)" -p 'go build -o $DST main.go'
-	// See https://github.com/pojntfx/bagccgop for more information.
-	// Usage: %s [OPTION...] '<INPUT>'
-	// `, os.Args[0], os.Args[0], os.Args[0])
+	// Define usage
+	pflag.Usage = func() {
+		fmt.Printf(`Build for all gccgo-supported platforms by default, disable those which you don't want (bagop with CGo support).
+	Example usage: %s -b mybin -x '(linux/alpha|linux/ppc64el)' -j "$(nproc)" 'main.go'
+	Example usage (with plain flag): %s -b mybin -x '(linux/alpha|linux/ppc64el)' -j "$(nproc)" -p 'go build -o $DST main.go'
+	See https://github.com/pojntfx/bagccgop for more information.
+	Usage: %s [OPTION...] '<INPUT>'
+	`, os.Args[0], os.Args[0], os.Args[0])
 
-	// 		pflag.PrintDefaults()
-	// 	}
-
-	// 	// Parse flags
-	// 	binFlag := pflag.StringP("bin", "b", "mybin", "Prefix of resulting binary")
-	// 	distFlag := pflag.StringP("dist", "d", "out", "Directory build into")
-	// 	excludeFlag := pflag.StringP("exclude", "x", "", "Regex of platforms not to build for, i.e. (linux/alpha|linux/ppc64el)")
-	// 	extraArgs := pflag.StringP("extra-args", "e", "", "Extra arguments to pass to the Go compiler")
-	// 	jobsFlag := pflag.Int64P("jobs", "j", 1, "Maximum amount of parallel jobs")
-	// 	goismsFlag := pflag.BoolP("goisms", "g", false, "Use Go's conventions (i.e. amd64) instead of uname's conventions (i.e. x86_64)")
-	// 	plainFlag := pflag.BoolP("plain", "p", false, "Sets GOARCH, GOARCH, CC, GCCGO, GOFLAGS and DST and leaves the rest up to you (see example usage)")
-
-	// 	pflag.Parse()
-	for _, p := range supportedPlatforms {
-		fmt.Print(p.DebianArch + " ")
+		pflag.PrintDefaults()
 	}
 
-	fmt.Println()
+	// Parse flags
+	// binFlag := pflag.StringP("bin", "b", "mybin", "Prefix of resulting binary")
+	// distFlag := pflag.StringP("dist", "d", "out", "Directory build into")
+	// excludeFlag := pflag.StringP("exclude", "x", "", "Regex of platforms not to build for, i.e. (linux/alpha|linux/ppc64el)")
+	// extraArgs := pflag.StringP("extra-args", "e", "", "Extra arguments to pass to the Go compiler")
+	// jobsFlag := pflag.Int64P("jobs", "j", 1, "Maximum amount of parallel jobs")
+	// goismsFlag := pflag.BoolP("goisms", "g", false, "Use Go's conventions (i.e. amd64) instead of uname's conventions (i.e. x86_64)")
+	// plainFlag := pflag.BoolP("plain", "p", false, "Sets GOARCH, GOARCH, CC, GCCGO, GOFLAGS and DST and leaves the rest up to you (see example usage)")
+	packagesFlag := pflag.StringArrayP("packages", "a", []string{}, "Comma-seperated list of Debian packages to install for the selected architectures")
 
-	for _, p := range supportedPlatforms {
-		fmt.Print("gccgo" + p.APTPackageSuffix + " gcc" + p.APTPackageSuffix + " ")
+	pflag.Parse()
+
+	if len(*packagesFlag) > 0 {
+		installCmd := ""
+		for _, platform := range supportedPlatforms {
+			for _, pkg := range *packagesFlag {
+				installCmd += " " + pkg + ":" + platform.DebianArch
+			}
+		}
+
+		log.Println(installCmd)
 	}
-
-	fmt.Println()
 }
