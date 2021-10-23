@@ -12,15 +12,15 @@ prepare_chroot() {
 
     apt update
     apt install -y debootstrap
-    mkdir -p "/var/lib/bagccgop/${GOLANG_ARCH}-chroot/data"
-    debootstrap "${DEBIAN_DIST}" "/var/lib/bagccgop/${GOLANG_ARCH}-chroot" "${DEBIAN_MIRROR}"
+    mkdir -p "/var/lib/bagccgop/${DEBIAN_ARCH}-chroot/data"
+    debootstrap "${DEBIAN_DIST}" "/var/lib/bagccgop/${DEBIAN_ARCH}-chroot" "${DEBIAN_MIRROR}"
 
-    chroot "/var/lib/bagccgop/${GOLANG_ARCH}-chroot" /bin/bash -c 'apt install -y ca-certificates debian-ports-archive-keyring'
-    chroot "/var/lib/bagccgop/${GOLANG_ARCH}-chroot" /bin/bash -c 'printf "deb http://ftp.ports.debian.org/debian-ports unstable main\ndeb http://ftp.ports.debian.org/debian-ports unreleased main\ndeb http://ftp.ports.debian.org/debian-ports experimental main" >>/etc/apt/sources.list'
-    chroot "/var/lib/bagccgop/${GOLANG_ARCH}-chroot" /bin/bash -c "dpkg --add-architecture \"${DEBIAN_ARCH}\""
-    chroot "/var/lib/bagccgop/${GOLANG_ARCH}-chroot" /bin/bash -c 'apt update'
-    chroot "/var/lib/bagccgop/${GOLANG_ARCH}-chroot" /bin/bash -c "apt install -y git golang \"gccgo${APT_PKG_SUFFIX}\" \"gcc${APT_PKG_SUFFIX}\""
-    chroot "/var/lib/bagccgop/${GOLANG_ARCH}-chroot" /bin/bash -c "echo 'export PATH=\"\${PATH}:\${HOME}/go/bin\"' >> ~/.bashrc"
+    chroot "/var/lib/bagccgop/${DEBIAN_ARCH}-chroot" /bin/bash -c 'apt install -y ca-certificates debian-ports-archive-keyring'
+    chroot "/var/lib/bagccgop/${DEBIAN_ARCH}-chroot" /bin/bash -c 'printf "deb http://ftp.ports.debian.org/debian-ports unstable main\ndeb http://ftp.ports.debian.org/debian-ports unreleased main\ndeb http://ftp.ports.debian.org/debian-ports experimental main" >>/etc/apt/sources.list'
+    chroot "/var/lib/bagccgop/${DEBIAN_ARCH}-chroot" /bin/bash -c "dpkg --add-architecture \"${DEBIAN_ARCH}\""
+    chroot "/var/lib/bagccgop/${DEBIAN_ARCH}-chroot" /bin/bash -c 'apt update'
+    chroot "/var/lib/bagccgop/${DEBIAN_ARCH}-chroot" /bin/bash -c "apt install -y git golang \"gccgo${APT_PKG_SUFFIX}\" \"gcc${APT_PKG_SUFFIX}\""
+    chroot "/var/lib/bagccgop/${DEBIAN_ARCH}-chroot" /bin/bash -c "echo 'export PATH=\"\${PATH}:\${HOME}/go/bin\"' >> ~/.bashrc"
 }
 
 prepare_chroots() {
