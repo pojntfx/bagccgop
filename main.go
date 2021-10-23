@@ -1,13 +1,38 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
+	"path"
+	"path/filepath"
+	"regexp"
+	"sync"
 
+	"github.com/alessio/shellescape"
+	"github.com/fatih/color"
 	"github.com/spf13/pflag"
 )
+
+func execInChroot(debianArch string, cmds []string) error {
+	for _, c := range cmds {
+		cmd := exec.Command("chroot", append([]string{path.Join("/var", "lib", "bagccgop", debianArch+"-chroot"), "/bin/bash", "-c"}, c)...) // This is always a UNIX path, which is why `filepath` is not being used
+
+		// Capture stdout and stderr
+		var buildStdout, buildStderr bytes.Buffer
+		cmd.Stdout = &buildStdout
+		cmd.Stderr = &buildStderr
+
+		// Start the build
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("could not install packages: err=%v, stdout=%v, stderr=%v", err, buildStdout.String(), buildStderr.String())
+		}
+	}
+
+	return nil
+}
 
 type Platform struct {
 	GoOS             string
@@ -106,7 +131,7 @@ var supportedPlatforms = []Platform{
 	},
 	{
 		"linux",
-		"powerpc64le",
+		"ppc64le",
 		"ppc64el",
 		"-powerpc64le-linux-gnu",
 		"powerpc64le-linux-gnu",
@@ -145,25 +170,102 @@ func main() {
 	}
 
 	// Parse flags
-	// binFlag := pflag.StringP("bin", "b", "mybin", "Prefix of resulting binary")
-	// distFlag := pflag.StringP("dist", "d", "out", "Directory build into")
-	// excludeFlag := pflag.StringP("exclude", "x", "", "Regex of platforms not to build for, i.e. (linux/alpha|linux/ppc64el)")
+	binFlag := pflag.StringP("bin", "b", "mybin", "Prefix of resulting binary")
+	distFlag := pflag.StringP("dist", "d", "out", "Directory build into")
+	excludeFlag := pflag.StringP("exclude", "x", "", "Regex of platforms not to build for, i.e. (linux/alpha|linux/ppc64el)")
 	// extraArgs := pflag.StringP("extra-args", "e", "", "Extra arguments to pass to the Go compiler")
-	// jobsFlag := pflag.Int64P("jobs", "j", 1, "Maximum amount of parallel jobs")
-	// goismsFlag := pflag.BoolP("goisms", "g", false, "Use Go's conventions (i.e. amd64) instead of uname's conventions (i.e. x86_64)")
+	jobsFlag := pflag.Int64P("jobs", "j", 1, "Maximum amount of parallel jobs")
+	goismsFlag := pflag.BoolP("goisms", "g", false, "Use Go's conventions (i.e. amd64) instead of uname's conventions (i.e. x86_64)")
 	// plainFlag := pflag.BoolP("plain", "p", false, "Sets GOARCH, GOARCH, CC, GCCGO, GOFLAGS and DST and leaves the rest up to you (see example usage)")
+
+	// prepareCommandFlag := pflag.StringP("prepare", "r", "", "Command to run before running the main command; will have only CC set (i.e. for code generation)")
 	packagesFlag := pflag.StringArrayP("packages", "a", []string{}, "Comma-seperated list of Debian packages to install for the selected architectures")
+	manualPackagesFlag := pflag.StringArrayP("manualPackages", "m", []string{}, "Comma-seperated list of Debian packages to manually install for the selected architectures (i.e. those which would break the dependency graph)")
 
 	pflag.Parse()
 
-	if len(*packagesFlag) > 0 {
-		installCmd := ""
-		for _, platform := range supportedPlatforms {
-			for _, pkg := range *packagesFlag {
-				installCmd += " " + pkg + ":" + platform.DebianArch
-			}
-		}
+	// Validate arguments
+	if pflag.NArg() == 0 {
+		help := `command needs an argument: 'INPUT'`
 
-		log.Println(installCmd)
+		fmt.Println(help)
+
+		pflag.Usage()
+
+		fmt.Println(help)
+
+		os.Exit(2)
 	}
+
+	// Interpret arguments
+	// input := pflag.Args()[0]
+
+	// Limits the max. amount of concurrent builds
+	// See https://play.golang.org/p/othihEtsOBZ
+	var wg = sync.WaitGroup{}
+	guard := make(chan struct{}, *jobsFlag)
+
+	for _, lplatform := range supportedPlatforms {
+		guard <- struct{}{}
+		wg.Add(1)
+
+		go func(platform Platform) {
+			defer func() {
+				wg.Done()
+
+				<-guard
+			}()
+
+			// Construct the filename
+			output := filepath.Join(*distFlag, *binFlag+"."+platform.GoOS+"-")
+
+			// Add the arch identifier
+			archIdentifier := platform.DebianArch
+			if *goismsFlag {
+				archIdentifier = platform.GoArch
+			}
+			output += archIdentifier
+
+			// Check if current platform should be skipped
+			skip := false
+			if *excludeFlag != "" {
+				iskip, err := regexp.MatchString(*excludeFlag, platform.GoOS+"/"+platform.GoArch)
+				if err != nil {
+					log.Fatal("could not match check if platform should be blocked based on regex:", err)
+				}
+
+				skip = iskip
+			}
+
+			// Skip the platform if it matches the exclude regex
+			if skip {
+				log.Printf("%v %v/%v (platform matched the provided regex)", color.New(color.FgYellow).SprintFunc()("skipping"), color.New(color.FgCyan).SprintFunc()(platform.GoOS), color.New(color.FgMagenta).SprintFunc()(platform.GoArch))
+
+				return
+			}
+
+			// Continue if platform is enabled
+			log.Printf("%v %v/%v (%v)", color.New(color.FgGreen).SprintFunc()("building"), color.New(color.FgCyan).SprintFunc()(platform.GoOS), color.New(color.FgMagenta).SprintFunc()(platform.GoArch), output)
+
+			// Install packages
+			for _, pkg := range *packagesFlag {
+				if err := execInChroot(platform.DebianArch, []string{`apt install -y ` + shellescape.Quote(pkg)}); err != nil {
+					log.Fatalf("could not install packages for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
+				}
+			}
+
+			// Install manual packages
+			for _, pkg := range *manualPackagesFlag {
+				if err := execInChroot(platform.DebianArch, []string{
+					`mkdir -p /tmp/bagccgop-packages/` + shellescape.Quote(pkg),
+					`cd /tmp/bagccgop-packages/` + shellescape.Quote(pkg) + ` && apt download ` + shellescape.Quote(pkg),
+					`dpkg -i --force-all /tmp/bagccgop-packages/` + shellescape.Quote(pkg) + `/*.deb`,
+				}); err != nil {
+					log.Fatalf("could not manually install packages for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
+				}
+			}
+		}(lplatform)
+	}
+
+	wg.Wait()
 }
