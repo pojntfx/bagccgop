@@ -2,5 +2,4 @@ FROM debian:sid
 
 COPY prepare_chroots.sh /usr/local/bin/prepare_chroots.sh
 
-RUN prepare_chroots.sh \
-    "sid|http://deb.debian.org/debian|powerpc|powerpc|-powerpc-linux-gnu|powerpc-linux-gnu "
+RUN prepare_chroots.sh "sid|http://deb.debian.org/debian|alpha|alpha|-alpha-linux-gnu|alpha-linux-gnu sid|http://deb.debian.org/debian|ppc|powerpc|-powerpc-linux-gnu|powerpc-linux-gnu sid|http://deb.debian.org/debian|ppc64|ppc64|-powerpc64-linux-gnu|powerpc64-linux-gnu sid|http://deb.debian.org/debian|sparc64|sparc64|-sparc64-linux-gnu|sparc64-linux-gnu sid|http://deb.debian.org/debian|riscv64|riscv64|-riscv64-linux-gnu|riscv64-linux-gnu sid|http://deb.debian.org/debian|amd64|amd64||x86_64-linux-gnu sid|http://deb.debian.org/debian|arm64|arm64|-aarch64-linux-gnu|aarch64-linux-gnu sid|http://deb.debian.org/debian|arm|armel|-arm-linux-gnueabi|arm-linux-gnueabi sid|http://deb.debian.org/debian|arm|armhf|-arm-linux-gnueabihf|arm-linux-gnueabihf sid|http://deb.debian.org/debian|386|i386|-i686-linux-gnu|i686-linux-gnu sid|http://deb.debian.org/debian|mipsle|mipsel|-mipsel-linux-gnu|mipsel-linux-gnu sid|http://deb.debian.org/debian|mips64le|mips64el|-mips64el-linux-gnuabi64|mips64el-linux-gnuabi64 sid|http://deb.debian.org/debian|powerpc64le|ppc64el|-powerpc64le-linux-gnu|powerpc64le-linux-gnu sid|http://deb.debian.org/debian|s390x|s390x|-s390x-linux-gnu|s390x-linux-gnu"
