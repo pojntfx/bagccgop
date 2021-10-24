@@ -9,7 +9,6 @@ on:
 jobs:
   build-linux:
     runs-on: ubuntu-latest
-    timeout-minutes: 240 # Building the chroots takes time
     permissions:
       contents: read
       packages: write
@@ -22,6 +21,14 @@ jobs:
             dockerfile: Dockerfile.bullseye
 
     steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 512
+          swap-size-mb: 1024
+          remove-dotnet: "true"
+          remove-android: "true"
+          remove-haskell: "true"
       - name: Checkout
         uses: actions/checkout@v2
       - name: Set up metadata
