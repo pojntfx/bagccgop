@@ -96,6 +96,7 @@ type Platform struct {
 	DebianArch       string
 	APTPackageSuffix string
 	GCCArch          string
+	UnameArch        string
 }
 
 // Based on https://www.debian.org/ports/
@@ -107,6 +108,7 @@ var supportedPlatforms = []Platform{
 		"alpha",
 		"-alpha-linux-gnu",
 		"alpha-linux-gnu",
+		"alpha",
 	},
 	{
 		"linux",
@@ -114,6 +116,7 @@ var supportedPlatforms = []Platform{
 		"powerpc",
 		"-powerpc-linux-gnu",
 		"powerpc-linux-gnu",
+		"powerpc",
 	},
 	{
 		"linux",
@@ -121,6 +124,7 @@ var supportedPlatforms = []Platform{
 		"ppc64",
 		"-powerpc64-linux-gnu",
 		"powerpc64-linux-gnu",
+		"ppc64",
 	},
 	{
 		"linux",
@@ -128,6 +132,7 @@ var supportedPlatforms = []Platform{
 		"sparc64",
 		"-sparc64-linux-gnu",
 		"sparc64-linux-gnu",
+		"sparc64",
 	},
 	{
 		"linux",
@@ -135,6 +140,7 @@ var supportedPlatforms = []Platform{
 		"riscv64",
 		"-riscv64-linux-gnu",
 		"riscv64-linux-gnu",
+		"riscv64",
 	},
 	{
 		"linux",
@@ -142,6 +148,7 @@ var supportedPlatforms = []Platform{
 		"amd64",
 		"",
 		"x86_64-linux-gnu",
+		"x86_64",
 	},
 	{
 		"linux",
@@ -149,6 +156,7 @@ var supportedPlatforms = []Platform{
 		"arm64",
 		"-aarch64-linux-gnu",
 		"aarch64-linux-gnu",
+		"aarch64",
 	},
 	{
 		"linux",
@@ -156,6 +164,7 @@ var supportedPlatforms = []Platform{
 		"armel",
 		"-arm-linux-gnueabi",
 		"arm-linux-gnueabi",
+		"armv6l",
 	},
 	{
 		"linux",
@@ -163,6 +172,7 @@ var supportedPlatforms = []Platform{
 		"armhf",
 		"-arm-linux-gnueabihf",
 		"arm-linux-gnueabihf",
+		"armv7l",
 	},
 	{
 		"linux",
@@ -170,6 +180,7 @@ var supportedPlatforms = []Platform{
 		"i386",
 		"-i686-linux-gnu",
 		"i686-linux-gnu",
+		"i686",
 	},
 	{
 		"linux",
@@ -177,6 +188,7 @@ var supportedPlatforms = []Platform{
 		"mipsel",
 		"-mipsel-linux-gnu",
 		"mipsel-linux-gnu",
+		"mips",
 	},
 	{
 		"linux",
@@ -184,6 +196,7 @@ var supportedPlatforms = []Platform{
 		"mips64el",
 		"-mips64el-linux-gnuabi64",
 		"mips64el-linux-gnuabi64",
+		"mips64",
 	},
 	{
 		"linux",
@@ -191,6 +204,7 @@ var supportedPlatforms = []Platform{
 		"ppc64el",
 		"-powerpc64le-linux-gnu",
 		"powerpc64le-linux-gnu",
+		"ppc64le",
 	},
 	{
 		"linux",
@@ -198,6 +212,7 @@ var supportedPlatforms = []Platform{
 		"s390x",
 		"-s390x-linux-gnu",
 		"s390x-linux-gnu",
+		"s390x",
 	},
 }
 
@@ -266,7 +281,7 @@ func main() {
 			output := filepath.Join(*distFlag, *binFlag+"."+platform.GoOS+"-")
 
 			// Add the arch identifier
-			archIdentifier := platform.DebianArch
+			archIdentifier := platform.UnameArch
 			if *goismsFlag {
 				archIdentifier = platform.GoArch
 			}
