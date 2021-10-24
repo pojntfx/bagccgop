@@ -13,7 +13,7 @@ prepare_chroot() {
     apt update
     apt install -y debootstrap
     mkdir -p "/var/lib/bagccgop/${DEBIAN_ARCH}-chroot/data"
-    debootstrap "${DEBIAN_DIST}" "/var/lib/bagccgop/${DEBIAN_ARCH}-chroot" "${DEBIAN_MIRROR}"
+    debootstrap --variant=minbase "${DEBIAN_DIST}" "/var/lib/bagccgop/${DEBIAN_ARCH}-chroot" "${DEBIAN_MIRROR}"
 
     chroot "/var/lib/bagccgop/${DEBIAN_ARCH}-chroot" /bin/bash -c 'apt install -y ca-certificates debian-ports-archive-keyring'
     chroot "/var/lib/bagccgop/${DEBIAN_ARCH}-chroot" /bin/bash -c 'printf "deb http://ftp.ports.debian.org/debian-ports unstable main\ndeb http://ftp.ports.debian.org/debian-ports unreleased main\ndeb http://ftp.ports.debian.org/debian-ports experimental main" >>/etc/apt/sources.list'
