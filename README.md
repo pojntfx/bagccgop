@@ -72,7 +72,7 @@ $ hydrun -o ghcr.io/pojntfx/bagccgop-base-sid -e '--privileged' -i bash
 root@bed49fc87e96:/data#
 ```
 
-We now have a temporary shell which we can use to cross-compile. There are currently two convenience images available; `ghcr.io/pojntfx/bagccgop-base-bullseye`, which is based on Debian 11 (Bullseye), and `ghcr.io/pojntfx/bagccgop-base-sid`, which is based on Debian Unstable. It is recommended to always use the former; the latter might have broken multi-architecture packages, but is more up-to-date. Note that for architectures which are only available as Debian ports (`linux/alpha`, `linux/ppc`, `linux/ppc64`, `linux/sparc64` and `linux/riscv64`), Debian Unstable is the only option.
+We now have a temporary shell which we can use to cross-compile. There are currently two convenience images available; `ghcr.io/pojntfx/bagccgop-base-bullseye`, which is based on Debian 11 (Bullseye), and `ghcr.io/pojntfx/bagccgop-base-sid`, which is based on Debian Unstable. It is recommended to always use the former; the latter might have broken multi-architecture packages, but is more up-to-date. Note that for architectures which are only available as Debian ports (`linux/alpha`, `linux/ppc`, `linux/ppc64`, `linux/sparc64` and `linux/riscv64`), Debian Unstable is the only option. You may alternatively also use the host system and set up the `chroot`s there; see [prepare_chroots](./prepare_chroots.sh) and the Dockerfiles for instructions.
 
 In the next step, let's install bagccgop inside the shell:
 
@@ -196,10 +196,13 @@ If you're enjoying bagccgop, the following projects might also be of help to you
 ```shell
 $ bagccgop --help
 Build for all gccgo-supported platforms by default, disable those which you don't want (bagop with CGo support).
-        Example usage: bagccgop -b mybin -x '(linux/alpha|linux/ppc64el)' -j "$(nproc)" 'main.go'
-        Example usage (with plain flag): bagccgop -b mybin -x '(linux/alpha|linux/ppc64el)' -j "$(nproc)" -p 'go build -o $DST main.go'
-        See https://github.com/pojntfx/bagccgop for more information.
-        Usage: bagccgop [OPTION...] '<INPUT>'
+
+Example usage: bagccgop -b mybin -x '(linux/alpha|linux/ppc64el)' -j "$(nproc)" 'main.go'
+Example usage (with plain flag): bagccgop -b mybin -x '(linux/alpha|linux/ppc64el)' -j "$(nproc)" -p 'go build -o $DST main.go'
+
+See https://github.com/pojntfx/bagccgop for more information.
+
+Usage: bagccgop [OPTION...] '<INPUT>'
           -b, --bin string               Prefix of resulting binary (default "mybin")
   -d, --dist string              Directory build into (default "out")
   -x, --exclude string           Regex of platforms not to build for, i.e. (linux/alpha|linux/ppc64el)
