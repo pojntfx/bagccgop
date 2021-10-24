@@ -56,7 +56,7 @@ func execInChroot(debianArch string, cmds []string, env map[string]string) error
 	chrootLocation := getChrootLocation(debianArch)
 
 	for _, c := range cmds {
-		cmd := exec.Command("chroot", append([]string{chrootLocation, "/bin/bash", "-c"}, c)...)
+		cmd := exec.Command("chroot", append([]string{chrootLocation, "/bin/bash", "-l", "-c"}, c)...)
 
 		// Capture stdout and stderr
 		var stdout, stderr bytes.Buffer
