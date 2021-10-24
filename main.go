@@ -230,10 +230,13 @@ func main() {
 	// Define usage
 	pflag.Usage = func() {
 		fmt.Printf(`Build for all gccgo-supported platforms by default, disable those which you don't want (bagop with CGo support).
-	Example usage: %s -b mybin -x '(linux/alpha|linux/ppc64el)' -j "$(nproc)" 'main.go'
-	Example usage (with plain flag): %s -b mybin -x '(linux/alpha|linux/ppc64el)' -j "$(nproc)" -p 'go build -o $DST main.go'
-	See https://github.com/pojntfx/bagccgop for more information.
-	Usage: %s [OPTION...] '<INPUT>'
+
+Example usage: %s -b mybin -x '(linux/alpha|linux/ppc64el)' -j "$(nproc)" 'main.go'
+Example usage (with plain flag): %s -b mybin -x '(linux/alpha|linux/ppc64el)' -j "$(nproc)" -p 'go build -o $DST main.go'
+
+See https://github.com/pojntfx/bagccgop for more information.
+
+Usage: %s [OPTION...] '<INPUT>'
 	`, os.Args[0], os.Args[0], os.Args[0])
 
 		pflag.PrintDefaults()
