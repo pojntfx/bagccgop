@@ -16,6 +16,10 @@ import (
 	"github.com/spf13/pflag"
 )
 
+const (
+	mountedPwd = "data"
+)
+
 func getChrootLocation(debianArch string) string {
 	return path.Join("/var", "lib", "bagccgop", debianArch+"-chroot") // This is always a UNIX path hence `filepath` is not being used
 }
@@ -30,7 +34,7 @@ func mountChroot(debianArch string) error {
 	for _, c := range [][]string{
 		{"-o", "bind", "/dev", path.Join(chrootLocation, "dev")},
 		{"-o", "bind", "/proc", path.Join(chrootLocation, "proc")},
-		{"-o", "bind", pwd, path.Join(chrootLocation, "data")},
+		{"-o", "bind", pwd, path.Join(chrootLocation, mountedPwd)},
 	} {
 		cmd := exec.Command("mount", c...)
 
@@ -48,7 +52,7 @@ func mountChroot(debianArch string) error {
 	return nil
 }
 
-func execInChroot(debianArch string, cmds []string) error {
+func execInChroot(debianArch string, cmds []string, env map[string]string) error {
 	chrootLocation := getChrootLocation(debianArch)
 
 	for _, c := range cmds {
@@ -58,6 +62,11 @@ func execInChroot(debianArch string, cmds []string) error {
 		var stdout, stderr bytes.Buffer
 		cmd.Stdout = &stdout
 		cmd.Stderr = &stderr
+
+		// Set env vars
+		for key, value := range env {
+			cmd.Env = append(cmd.Env, shellescape.Quote(key)+"="+shellescape.Quote(value))
+		}
 
 		// Start the build
 		if err := cmd.Run(); err != nil {
@@ -70,6 +79,14 @@ func execInChroot(debianArch string, cmds []string) error {
 
 func getPkgNameForArch(pkg string, debianArch string) string {
 	return pkg + ":" + debianArch
+}
+
+func getCC(gccArch string) string {
+	return gccArch + "-gcc"
+}
+
+func getGCCGo(gccArch string) string {
+	return gccArch + "-gccgo"
 }
 
 type Platform struct {
@@ -183,17 +200,6 @@ var supportedPlatforms = []Platform{
 	},
 }
 
-func getSystemShell() []string {
-	// Prefer Bash
-	bash, err := exec.LookPath("bash")
-	if err == nil {
-		return []string{bash, "-c"}
-	}
-
-	// Fall back to POSIX shell
-	return []string{"sh", "-c"}
-}
-
 func main() {
 	// Define usage
 	pflag.Usage = func() {
@@ -216,7 +222,7 @@ func main() {
 	goismsFlag := pflag.BoolP("goisms", "g", false, "Use Go's conventions (i.e. amd64) instead of uname's conventions (i.e. x86_64)")
 	// plainFlag := pflag.BoolP("plain", "p", false, "Sets GOARCH, GOARCH, CC, GCCGO, GOFLAGS and DST and leaves the rest up to you (see example usage)")
 
-	// prepareCommandFlag := pflag.StringP("prepare", "r", "", "Command to run before running the main command; will have only CC set (i.e. for code generation)")
+	prepareCommandFlag := pflag.StringP("prepare", "r", "", "Command to run before running the main command; will have only CC and GCCGO set (i.e. for code generation)")
 	hostPackagesFlag := pflag.StringSliceP("hostPackages", "s", []string{}, "Comma-seperated list of Debian packages to install for the host architecture")
 	packagesFlag := pflag.StringSliceP("packages", "a", []string{}, "Comma-seperated list of Debian packages to install for the selected architectures")
 	manualPackagesFlag := pflag.StringSliceP("manualPackages", "m", []string{}, "Comma-seperated list of Debian packages to manually install for the selected architectures (i.e. those which would break the dependency graph)")
@@ -293,7 +299,11 @@ func main() {
 
 			// Install host packages
 			for _, pkg := range *hostPackagesFlag {
-				if err := execInChroot(platform.DebianArch, []string{`apt install -y ` + shellescape.Quote(pkg)}); err != nil {
+				if err := execInChroot(
+					platform.DebianArch,
+					[]string{`apt install -y ` + shellescape.Quote(pkg)},
+					nil,
+				); err != nil {
 					log.Fatalf("could not install host packages for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
 				}
 			}
@@ -302,7 +312,11 @@ func main() {
 			for _, rawPkg := range *packagesFlag {
 				pkg := getPkgNameForArch(rawPkg, platform.DebianArch)
 
-				if err := execInChroot(platform.DebianArch, []string{`apt install -y ` + shellescape.Quote(pkg)}); err != nil {
+				if err := execInChroot(
+					platform.DebianArch,
+					[]string{`apt install -y ` + shellescape.Quote(pkg)},
+					nil,
+				); err != nil {
 					log.Fatalf("could not install packages for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
 				}
 			}
@@ -311,12 +325,30 @@ func main() {
 			for _, rawPkg := range *manualPackagesFlag {
 				pkg := getPkgNameForArch(rawPkg, platform.DebianArch)
 
-				if err := execInChroot(platform.DebianArch, []string{
-					`mkdir -p /tmp/bagccgop-packages/` + shellescape.Quote(pkg),
-					`cd /tmp/bagccgop-packages/` + shellescape.Quote(pkg) + ` && apt download ` + shellescape.Quote(pkg),
-					`dpkg -i --force-all /tmp/bagccgop-packages/` + shellescape.Quote(pkg) + `/*.deb`,
-				}); err != nil {
+				if err := execInChroot(
+					platform.DebianArch,
+					[]string{
+						`mkdir -p /tmp/bagccgop-packages/` + shellescape.Quote(pkg),
+						`cd /tmp/bagccgop-packages/` + shellescape.Quote(pkg) + ` && apt download ` + shellescape.Quote(pkg),
+						`dpkg -i --force-all /tmp/bagccgop-packages/` + shellescape.Quote(pkg) + `/*.deb`,
+					},
+					nil,
+				); err != nil {
 					log.Fatalf("could not manually install packages for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
+				}
+			}
+
+			// Run prepare command
+			if *prepareCommandFlag != "" {
+				if err := execInChroot(
+					platform.DebianArch,
+					[]string{"cd " + mountedPwd + " && " + *prepareCommandFlag},
+					map[string]string{
+						"CC":    getCC(platform.GCCArch),
+						"GCCGO": getGCCGo(platform.GCCArch),
+					},
+				); err != nil {
+					log.Fatalf("could not run prepare command for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
 				}
 			}
 		}(lplatform)
