@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# Install native dependencies
+apt update
+apt install -y curl
+
+# Install bagop
+curl -L -o /tmp/bagop "https://github.com/pojntfx/bagop/releases/latest/download/bagop.linux-$(uname -m)"
+install /tmp/bagop /usr/local/bin
+
+# Build
+CGO_ENABLED=0 bagop -j "$(nproc)" -b bagccgop -x '(android/*|ios/*|openbsd/mips64)' main.go
