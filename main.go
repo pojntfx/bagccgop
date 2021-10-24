@@ -64,8 +64,9 @@ func execInChroot(debianArch string, cmds []string, env map[string]string) error
 		cmd.Stderr = &stderr
 
 		// Set env vars
+		cmd.Env = os.Environ()
 		for key, value := range env {
-			cmd.Env = append(cmd.Env, shellescape.Quote(key)+"="+shellescape.Quote(value))
+			cmd.Env = append(cmd.Env, shellescape.Quote(key)+"="+value)
 		}
 
 		// Start the build
@@ -217,10 +218,10 @@ func main() {
 	binFlag := pflag.StringP("bin", "b", "mybin", "Prefix of resulting binary")
 	distFlag := pflag.StringP("dist", "d", "out", "Directory build into")
 	excludeFlag := pflag.StringP("exclude", "x", "", "Regex of platforms not to build for, i.e. (linux/alpha|linux/ppc64el)")
-	// extraArgs := pflag.StringP("extra-args", "e", "", "Extra arguments to pass to the Go compiler")
+	extraArgs := pflag.StringP("extra-args", "e", "", "Extra arguments to pass to the Go compiler")
 	jobsFlag := pflag.Int64P("jobs", "j", 1, "Maximum amount of parallel jobs")
 	goismsFlag := pflag.BoolP("goisms", "g", false, "Use Go's conventions (i.e. amd64) instead of uname's conventions (i.e. x86_64)")
-	// plainFlag := pflag.BoolP("plain", "p", false, "Sets GOARCH, GOARCH, CC, GCCGO, GOFLAGS and DST and leaves the rest up to you (see example usage)")
+	plainFlag := pflag.BoolP("plain", "p", false, "Sets GOARCH, GOARCH, CC, GCCGO, GOFLAGS and DST and leaves the rest up to you (see example usage)")
 
 	prepareCommandFlag := pflag.StringP("prepare", "r", "", "Command to run before running the main command; will have only CC and GCCGO set (i.e. for code generation)")
 	hostPackagesFlag := pflag.StringSliceP("hostPackages", "s", []string{}, "Comma-seperated list of Debian packages to install for the host architecture")
@@ -243,7 +244,7 @@ func main() {
 	}
 
 	// Interpret arguments
-	// input := pflag.Args()[0]
+	input := pflag.Args()[0]
 
 	// Limits the max. amount of concurrent builds
 	// See https://play.golang.org/p/othihEtsOBZ
@@ -350,6 +351,41 @@ func main() {
 				); err != nil {
 					log.Fatalf("could not run prepare command for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
 				}
+			}
+
+			// Construct build command
+			buildLine := "go build -o " + output + " " + input
+			if *extraArgs != "" {
+				buildLine = "go build -o " + output + " " + *extraArgs + " " + input
+			}
+
+			// If the plain flag is set, use the custom command
+			if *plainFlag {
+				buildLine = input
+			}
+
+			// Set env vars
+			buildEnv := map[string]string{
+				"CC":          getCC(platform.GCCArch),
+				"GCCGO":       getGCCGo(platform.GCCArch),
+				"CGO_ENABLED": "1",
+				"GOOS":        platform.GoOS,
+				"GOARCH":      platform.GoArch,
+				"GOFLAGS":     "-compiler=gccgo " + os.Getenv("GOFLAGS"),
+			}
+
+			// If the plain flag is set, also set DST
+			if *plainFlag {
+				buildEnv["DST"] = shellescape.Quote(output)
+			}
+
+			// Start the build
+			if err := execInChroot(
+				platform.DebianArch,
+				[]string{"cd " + mountedPwd + " && " + buildLine},
+				buildEnv,
+			); err != nil {
+				log.Fatalf("could not build for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
 			}
 		}(lplatform)
 	}
