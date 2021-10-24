@@ -185,7 +185,7 @@ out/hello-world.linux-x86_64:  ELF 64-bit LSB executable, x86-64, version 1 (GNU
 
 If you're enjoying bagccgop, the following projects might also be of help to you too:
 
-- Need to cross-compile with additional packages, such as OpenSSL, SDL2 or SQLite? Check out the [Reference](#reference)
+- Need to cross-compile with additional packages, such as OpenSSL, SDL2 or SQLite? Check out the [Reference](#reference)!
 - Also want to test these cross-compiled binaries? Check out [hydrun](https://github.com/pojntfx/hydrun)!
 - Need to cross-compile without CGo? Check out [bagop](https://github.com/pojntfx/bagop)!
 - Want to build fully-featured desktop GUI for all these platforms without CGo? Check out [Lorca](https://github.com/zserge/lorca)!
