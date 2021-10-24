@@ -3,13 +3,23 @@ name: Docker CI
 on:
   push:
   pull_request:
+  schedule:
+    - cron: "0 0 * * 0"
 
 jobs:
   build-linux:
     runs-on: ubuntu-latest
+    timeout-minutes: 240 # Building the chroots takes time
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        target:
+          - image: ghcr.io/pojntfx/bagccgop-base-sid
+            dockerfile: Dockerfile.sid
+          - image: ghcr.io/pojntfx/bagccgop-base-bullseye
+            dockerfile: Dockerfile.bullseye
 
     steps:
       - name: Checkout
@@ -18,7 +28,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with:
-          images: ghcr.io/pojntfx/bagccgop-base
+          images: ${{ matrix.target.image }}
           tags: type=semver,pattern={{version}}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -34,27 +44,27 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: ./Dockerfile
+          file: ${{ matrix.target.dockerfile }}
           platforms: linux/amd64
           push: false
-          tags: ghcr.io/pojntfx/bagccgop-base:unstable
+          tags: ${{ matrix.target.image }}:unstable
           labels: ${{ steps.meta.outputs.labels }}
       - name: Push pre-release image to Docker Hub
         if: ${{ github.ref == 'refs/heads/main' }}
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: ./Dockerfile
+          file: ${{ matrix.target.dockerfile }}
           platforms: linux/amd64
           push: true
-          tags: ghcr.io/pojntfx/bagccgop-base:unstable
+          tags: ${{ matrix.target.image }}:unstable
           labels: ${{ steps.meta.outputs.labels }}
       - name: Push release image to Docker Hub
         if: startsWith(github.ref, 'refs/tags/v')
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: ./Dockerfile
+          file: ${{ matrix.target.dockerfile }}
           platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
