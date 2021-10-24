@@ -24,7 +24,7 @@ func getChrootLocation(debianArch string) string {
 	return path.Join("/var", "lib", "bagccgop", debianArch+"-chroot") // This is always a UNIX path hence `filepath` is not being used
 }
 
-func mountChroot(debianArch string) error {
+func mountChroot(debianArch string, verbose bool) error {
 	chrootLocation := getChrootLocation(debianArch)
 	pwd, err := os.Getwd()
 	if err != nil {
@@ -43,6 +43,11 @@ func mountChroot(debianArch string) error {
 		cmd.Stdout = &stdout
 		cmd.Stderr = &stderr
 
+		// Log the command if requested
+		if verbose {
+			log.Println(cmd)
+		}
+
 		// Start the build
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("could not mount chroot: err=%v, stdout=%v, stderr=%v", err, stdout.String(), stderr.String())
@@ -52,7 +57,7 @@ func mountChroot(debianArch string) error {
 	return nil
 }
 
-func execInChroot(debianArch string, cmds []string, env map[string]string) error {
+func execInChroot(debianArch string, cmds []string, env map[string]string, verbose bool) error {
 	chrootLocation := getChrootLocation(debianArch)
 
 	for _, c := range cmds {
@@ -67,6 +72,11 @@ func execInChroot(debianArch string, cmds []string, env map[string]string) error
 		cmd.Env = os.Environ()
 		for key, value := range env {
 			cmd.Env = append(cmd.Env, shellescape.Quote(key)+"="+value)
+		}
+
+		// Log the command if requested
+		if verbose {
+			log.Println(cmd)
 		}
 
 		// Start the build
@@ -242,6 +252,7 @@ func main() {
 	hostPackagesFlag := pflag.StringSliceP("hostPackages", "s", []string{}, "Comma-seperated list of Debian packages to install for the host architecture")
 	packagesFlag := pflag.StringSliceP("packages", "a", []string{}, "Comma-seperated list of Debian packages to install for the selected architectures")
 	manualPackagesFlag := pflag.StringSliceP("manualPackages", "m", []string{}, "Comma-seperated list of Debian packages to manually install for the selected architectures (i.e. those which would break the dependency graph)")
+	verboseFlag := pflag.BoolP("verbose", "v", false, "Enable logging of executed commands")
 
 	pflag.Parse()
 
@@ -309,15 +320,19 @@ func main() {
 			log.Printf("%v %v/%v (%v)", color.New(color.FgGreen).SprintFunc()("building"), color.New(color.FgCyan).SprintFunc()(platform.GoOS), color.New(color.FgMagenta).SprintFunc()(platform.GoArch), output)
 
 			// Mount chroot
-			if err := mountChroot(platform.DebianArch); err != nil {
+			if err := mountChroot(platform.DebianArch, *verboseFlag); err != nil {
 				log.Fatalf("could not mount chroot for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
 			}
 
 			// Fix the potentially broken dependency graph
 			if err := execInChroot(
 				platform.DebianArch,
-				[]string{`apt --fix-broken -y install`},
+				[]string{
+					`dpkg --configure -a`,
+					`apt --fix-broken -y install`,
+				},
 				nil,
+				*verboseFlag,
 			); err != nil {
 				log.Fatalf("could not fix dependency graph for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
 			}
@@ -328,6 +343,7 @@ func main() {
 					platform.DebianArch,
 					[]string{`apt install -y ` + shellescape.Quote(pkg)},
 					nil,
+					*verboseFlag,
 				); err != nil {
 					log.Fatalf("could not install host packages for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
 				}
@@ -341,6 +357,7 @@ func main() {
 					platform.DebianArch,
 					[]string{`apt install -y ` + shellescape.Quote(pkg)},
 					nil,
+					*verboseFlag,
 				); err != nil {
 					log.Fatalf("could not install packages for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
 				}
@@ -358,6 +375,7 @@ func main() {
 						`dpkg -i --force-all /tmp/bagccgop-packages/` + shellescape.Quote(pkg) + `/*.deb`,
 					},
 					nil,
+					*verboseFlag,
 				); err != nil {
 					log.Fatalf("could not manually install packages for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
 				}
@@ -372,6 +390,7 @@ func main() {
 						"CC":    getCC(platform.GCCArch),
 						"GCCGO": getGCCGo(platform.GCCArch),
 					},
+					*verboseFlag,
 				); err != nil {
 					log.Fatalf("could not run prepare command for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
 				}
@@ -390,12 +409,14 @@ func main() {
 
 			// Set env vars
 			buildEnv := map[string]string{
-				"CC":          getCC(platform.GCCArch),
-				"GCCGO":       getGCCGo(platform.GCCArch),
-				"CGO_ENABLED": "1",
-				"GOOS":        platform.GoOS,
-				"GOARCH":      platform.GoArch,
-				"GOFLAGS":     "-compiler=gccgo " + os.Getenv("GOFLAGS"),
+				"CC":                getCC(platform.GCCArch),
+				"GCCGO":             getGCCGo(platform.GCCArch),
+				"CGO_ENABLED":       "1",
+				"GOOS":              platform.GoOS,
+				"GOARCH":            platform.GoArch,
+				"GOFLAGS":           "-compiler=gccgo " + os.Getenv("GOFLAGS"),
+				"PKG_CONFIG_LIBDIR": path.Join("/usr", "lib", platform.DebianArch+"-linux-gnu", "pkgconfig"), // This is always a UNIX path hence `filepath` is not being used
+				"PKG_CONFIG_PATH":   "",                                                                      // See https://stackoverflow.com/questions/22228180/why-does-my-cross-compiling-fail
 			}
 
 			// If the plain flag is set, also set DST
@@ -408,6 +429,7 @@ func main() {
 				platform.DebianArch,
 				[]string{"cd " + mountedPwd + " && " + buildLine},
 				buildEnv,
+				*verboseFlag,
 			); err != nil {
 				log.Fatalf("could not build for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
 			}
