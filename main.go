@@ -298,6 +298,15 @@ func main() {
 				log.Fatalf("could not mount chroot for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
 			}
 
+			// Fix the potentially broken dependency graph
+			if err := execInChroot(
+				platform.DebianArch,
+				[]string{`apt --fix-broken -y install`},
+				nil,
+			); err != nil {
+				log.Fatalf("could not fix dependency graph for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
+			}
+
 			// Install host packages
 			for _, pkg := range *hostPackagesFlag {
 				if err := execInChroot(
