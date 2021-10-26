@@ -390,8 +390,12 @@ Usage: %s [OPTION...] '<INPUT>'
 					platform.DebianArch,
 					[]string{"cd " + mountedPwd + " && " + *prepareCommandFlag},
 					map[string]string{
-						"CC":    getCC(platform.GCCArch),
-						"GCCGO": getGCCGo(platform.GCCArch),
+						"CC":                getCC(platform.GCCArch),
+						"GCCGO":             getGCCGo(platform.GCCArch),
+						"BUILD_CC":          "gcc",
+						"HOST":              platform.GCCArch,
+						"PKG_CONFIG_LIBDIR": path.Join("/usr", "lib", platform.DebianArch+"-linux-gnu", "pkgconfig"), // This is always a UNIX path hence `filepath` is not being used
+						"PKG_CONFIG_PATH":   "",                                                                      // See https://stackoverflow.com/questions/22228180/why-does-my-cross-compiling-fail
 					},
 					*verboseFlag,
 				); err != nil {
