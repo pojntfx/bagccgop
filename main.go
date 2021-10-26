@@ -413,6 +413,8 @@ Usage: %s [OPTION...] '<INPUT>'
 			// Set env vars
 			buildEnv := map[string]string{
 				"CC":                getCC(platform.GCCArch),
+				"BUILD_CC":          "gcc",
+				"HOST":              platform.GCCArch,
 				"GCCGO":             getGCCGo(platform.GCCArch),
 				"CGO_ENABLED":       "1",
 				"GOOS":              platform.GoOS,
