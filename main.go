@@ -344,7 +344,7 @@ Usage: %s [OPTION...] '<INPUT>'
 			for _, pkg := range *hostPackagesFlag {
 				if err := execInChroot(
 					platform.DebianArch,
-					[]string{`apt install -y ` + shellescape.Quote(pkg)},
+					[]string{`apt update && apt install -y ` + shellescape.Quote(pkg)},
 					nil,
 					*verboseFlag,
 				); err != nil {
@@ -358,7 +358,7 @@ Usage: %s [OPTION...] '<INPUT>'
 
 				if err := execInChroot(
 					platform.DebianArch,
-					[]string{`apt install -y ` + shellescape.Quote(pkg)},
+					[]string{`apt update && apt install -y ` + shellescape.Quote(pkg)},
 					nil,
 					*verboseFlag,
 				); err != nil {
