@@ -252,6 +252,7 @@ Usage: %s [OPTION...] '<INPUT>'
 	plainFlag := pflag.BoolP("plain", "p", false, "Sets GOARCH, GOARCH, CC, GCCGO, GOFLAGS and DST and leaves the rest up to you (see example usage)")
 
 	prepareCommandFlag := pflag.StringP("prepare", "r", "", "Command to run before running the main command; will have only CC and GCCGO set (i.e. for code generation)")
+	prepareCommandNativeFlag := pflag.BoolP("prepare-native", "n", false, "Don't set any env variables when running the prepare command")
 	hostPackagesFlag := pflag.StringSliceP("hostPackages", "s", []string{}, "Comma-seperated list of Debian packages to install for the host architecture")
 	packagesFlag := pflag.StringSliceP("packages", "a", []string{}, "Comma-seperated list of Debian packages to install for the selected architectures")
 	manualPackagesFlag := pflag.StringSliceP("manualPackages", "m", []string{}, "Comma-seperated list of Debian packages to manually install for the selected architectures (i.e. those which would break the dependency graph)")
@@ -386,20 +387,31 @@ Usage: %s [OPTION...] '<INPUT>'
 
 			// Run prepare command
 			if *prepareCommandFlag != "" {
-				if err := execInChroot(
-					platform.DebianArch,
-					[]string{"cd " + mountedPwd + " && " + *prepareCommandFlag},
-					map[string]string{
-						"CC":                getCC(platform.GCCArch),
-						"GCCGO":             getGCCGo(platform.GCCArch),
-						"BUILD_CC":          "gcc",
-						"HOST":              platform.GCCArch,
-						"PKG_CONFIG_LIBDIR": path.Join("/usr", "lib", platform.DebianArch+"-linux-gnu", "pkgconfig"), // This is always a UNIX path hence `filepath` is not being used
-						"PKG_CONFIG_PATH":   "",                                                                      // See https://stackoverflow.com/questions/22228180/why-does-my-cross-compiling-fail
-					},
-					*verboseFlag,
-				); err != nil {
-					log.Fatalf("could not run prepare command for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
+				if *prepareCommandNativeFlag {
+					if err := execInChroot(
+						platform.DebianArch,
+						[]string{"cd " + mountedPwd + " && " + *prepareCommandFlag},
+						map[string]string{},
+						*verboseFlag,
+					); err != nil {
+						log.Fatalf("could not run prepare command for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
+					}
+				} else {
+					if err := execInChroot(
+						platform.DebianArch,
+						[]string{"cd " + mountedPwd + " && " + *prepareCommandFlag},
+						map[string]string{
+							"CC":                getCC(platform.GCCArch),
+							"GCCGO":             getGCCGo(platform.GCCArch),
+							"BUILD_CC":          "gcc",
+							"HOST":              platform.GCCArch,
+							"PKG_CONFIG_LIBDIR": path.Join("/usr", "lib", platform.DebianArch+"-linux-gnu", "pkgconfig"), // This is always a UNIX path hence `filepath` is not being used
+							"PKG_CONFIG_PATH":   "",                                                                      // See https://stackoverflow.com/questions/22228180/why-does-my-cross-compiling-fail
+						},
+						*verboseFlag,
+					); err != nil {
+						log.Fatalf("could not run prepare command for platform %v/%v: err=%v", platform.GoOS, platform.GoArch, err)
+					}
 				}
 			}
 
