@@ -188,7 +188,7 @@ If you're enjoying bagccgop, the following projects might also be of help to you
 - Need to cross-compile with additional packages, such as OpenSSL, SDL2 or SQLite? Check out the [Reference](#reference)!
 - Also want to test these cross-compiled binaries? Check out [hydrun](https://github.com/pojntfx/hydrun)!
 - Need to cross-compile without CGo? Check out [bagop](https://github.com/pojntfx/bagop)!
-- Want to build fully-featured desktop GUI for all these platforms without CGo? Check out [Lorca](https://github.com/zserge/lorca)!
+- Want to build fully-featured desktop GUI for all these platforms without CGo? Check out [hydrapp](https://github.com/pojntfx/hydrapp)!
 - Want to use SQLite without CGo? Check out [cznic/sqlite](https://gitlab.com/cznic/sqlite)!
 
 ## Reference
@@ -240,6 +240,6 @@ Have any questions or need help? Chat with us [on Matrix](https://matrix.to/#/#b
 
 ## License
 
-bagccgop (c) 2021 Felicitas Pojtinger and contributors
+bagccgop (c) 2023 Felicitas Pojtinger and contributors
 
 SPDX-License-Identifier: AGPL-3.0
