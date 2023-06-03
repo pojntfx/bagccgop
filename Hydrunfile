@@ -16,7 +16,7 @@ if [ "$1" = "go" ]; then
     install /tmp/bagop /usr/local/bin
 
     # Build
-    CGO_ENABLED=0 bagop -j "$(nproc)" -b bagccgop -x '(android/*|ios/*|plan9/*|aix/*|linux/loong64|freebsd/riscv64)' main.go
+    CGO_ENABLED=0 bagop -j "$(nproc)" -b bagccgop -x '(android/*|ios/*|plan9/*|aix/*|linux/loong64|freebsd/riscv64|openbsd/mips64)' main.go
 
     exit 0
 fi
