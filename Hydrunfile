@@ -31,7 +31,7 @@ if [ "$1" = "gccgo" ]; then
     git config --global --add safe.directory '*'
 
     # Build
-    GOFLAGS='-gccgoflags=-static' go run main.go -j "$(nproc)" -b bagccgop -x '(linux/alpha|linux/mipsle|linux/arm$|linux/arm64|linux/386|linux/amd64|linux/s390x|linux/ppc64|linux/riscv64|linux/mips64|linux/ppc64le)' main.go
+    GOFLAGS='-gccgoflags=-static' go run main.go -j "$(nproc)" -b bagccgop -x '(linux/alpha|linux/mipsle|linux/arm$|linux/arm64|linux/386|linux/amd64|linux/s390x|linux/ppc64|linux/riscv64|linux/mips64|linux/ppc64le|linux/sparc64)' main.go
 
     exit 0
 fi
