@@ -227,7 +227,7 @@ To build bagccgop locally, run:
 ```shell
 $ git clone https://github.com/pojntfx/bagccgop.git
 $ cd bagccgop
-$ go run main.go --help
+$ go run ./cmd/bagccgop/main.go --help
 ```
 
 To build the convenience images with pre-built Debian `chroot`s, run:
