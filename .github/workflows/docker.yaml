@@ -17,7 +17,7 @@ jobs:
         target:
           - src: .
             image: ghcr.io/pojntfx/bagccgop-base-sid
-            arch: "linux/amd64",
+            arch: "linux/amd64"
             file: Dockerfile.sid
           - src: .
             image: ghcr.io/pojntfx/bagccgop-base-bullseye
