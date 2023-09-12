@@ -389,7 +389,7 @@ Usage: %s [OPTION...] '<INPUT>'
 				if *prepareCommandNativeFlag {
 					if err := execInChroot(
 						platform.DebianArch,
-						[]string{"cd " + mountedPwd + " && " + *prepareCommandFlag},
+						[]string{"cd " + mountedPwd + " && git config --global --add safe.directory '*' && " + *prepareCommandFlag},
 						map[string]string{},
 						*verboseFlag,
 					); err != nil {
@@ -398,7 +398,7 @@ Usage: %s [OPTION...] '<INPUT>'
 				} else {
 					if err := execInChroot(
 						platform.DebianArch,
-						[]string{"cd " + mountedPwd + " && " + *prepareCommandFlag},
+						[]string{"cd " + mountedPwd + " && git config --global --add safe.directory '*' && " + *prepareCommandFlag},
 						map[string]string{
 							"CC":                getCC(platform.GCCArch),
 							"GCCGO":             getGCCGo(platform.GCCArch),
@@ -447,7 +447,7 @@ Usage: %s [OPTION...] '<INPUT>'
 			// Start the build
 			if err := execInChroot(
 				platform.DebianArch,
-				[]string{"cd " + mountedPwd + " && " + buildLine},
+				[]string{"cd " + mountedPwd + " && git config --global --add safe.directory '*' && " + buildLine},
 				buildEnv,
 				*verboseFlag,
 			); err != nil {
