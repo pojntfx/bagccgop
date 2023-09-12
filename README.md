@@ -24,7 +24,7 @@ $ sudo install /tmp/bagccgop /usr/local/bin
 
 ## Usage
 
-Let's assume we have a Go app called `hello-world` and we want to build it for as many platforms as possible using bagccgop. This is the `main.go`:
+Let's assume we have a Go app called `hello-world`, and we want to build it for as many platforms as possible using bagccgop. This is the `main.go`:
 
 ```go
 package main
@@ -233,9 +233,9 @@ $ go run ./cmd/bagccgop/main.go --help
 To build the convenience images with pre-built Debian `chroot`s, run:
 
 ```shell
-$ docker buildx build --allow security.insecure -t ghcr.io/pojntfx/bagccgop-base-sid --load -f Dockerfile.sid .
-$ docker buildx build --allow security.insecure -t ghcr.io/pojntfx/bagccgop-base-bullseye --load -f Dockerfile.bullseye .
-$ docker buildx build --allow security.insecure -t ghcr.io/pojntfx/bagccgop-base-bookworm --load -f Dockerfile.bookworm .
+$ docker build -t ghcr.io/pojntfx/bagccgop-base-bookworm -f Dockerfile.bookworm .
+$ docker build -t ghcr.io/pojntfx/bagccgop-base-bullseye -f Dockerfile.bullseye .
+$ docker build -t ghcr.io/pojntfx/bagccgop-base-sid -f Dockerfile.sid .
 ```
 
 Have any questions or need help? Chat with us [on Matrix](https://matrix.to/#/#bagccgop:matrix.org?via=matrix.org)!
