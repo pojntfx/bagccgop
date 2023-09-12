@@ -69,11 +69,11 @@ This is because in order to use C code in Go, we have to use CGo, which requires
 ```shell
 $ hydrun -o ghcr.io/pojntfx/bagccgop-base-sid -e '--privileged' -i bash
 2021/10/24 19:03:37 /usr/bin/docker inspect ghcr.io/pojntfx/bagccgop-base-sid-amd64
-2021/10/24 19:03:37 /usr/bin/docker run -it -v /home/pojntfx/Projects/hello-world:/data:z --platform linux/amd64 --privileged ghcr.io/pojntfx/bagccgop-base-bullseye /bin/sh -c cd /data && bash
+2021/10/24 19:03:37 /usr/bin/docker run -it -v /home/pojntfx/Projects/hello-world:/data:z --platform linux/amd64 --privileged ghcr.io/pojntfx/bagccgop-base-bookworm /bin/sh -c cd /data && bash
 root@bed49fc87e96:/data#
 ```
 
-We now have a temporary shell which we can use to cross-compile. There are currently two convenience images available; `ghcr.io/pojntfx/bagccgop-base-bullseye`, which is based on Debian 11 (Bullseye), and `ghcr.io/pojntfx/bagccgop-base-sid`, which is based on Debian Unstable. It is recommended to always use the former; the latter might have broken multi-architecture packages, but is more up-to-date. Note that for architectures which are only available as Debian ports (`linux/alpha`, `linux/ppc`, `linux/ppc64`, `linux/sparc64` and `linux/riscv64`), Debian Unstable is the only option. You may alternatively also use the host system and set up the `chroot`s there; see [prepare_chroots](./prepare_chroots.sh) and the Dockerfiles for instructions.
+We now have a temporary shell which we can use to cross-compile. There are currently three convenience images available; `ghcr.io/pojntfx/bagccgop-base-bookworm`, which is based on Debian 12 (Bookworm), `ghcr.io/pojntfx/bagccgop-base-bullseye`, which is based on Debian 11 (Bullseye), and `ghcr.io/pojntfx/bagccgop-base-sid`, which is based on Debian Unstable. It is recommended to always use Debian 12 (Bookworm) when possible; the latter might have broken multi-architecture packages, but is more up-to-date. Note that for architectures which are only available as Debian ports (`linux/alpha`, `linux/ppc`, `linux/ppc64`, `linux/sparc64` and `linux/riscv64`), Debian Unstable is the only option. You may alternatively also use the host system and set up the `chroot`s there; see [prepare_chroots](./prepare_chroots.sh) and the Dockerfiles for instructions.
 
 In the next step, let's install bagccgop inside the shell:
 
@@ -235,6 +235,7 @@ To build the convenience images with pre-built Debian `chroot`s, run:
 ```shell
 $ docker buildx build --allow security.insecure -t ghcr.io/pojntfx/bagccgop-base-sid --load -f Dockerfile.sid .
 $ docker buildx build --allow security.insecure -t ghcr.io/pojntfx/bagccgop-base-bullseye --load -f Dockerfile.bullseye .
+$ docker buildx build --allow security.insecure -t ghcr.io/pojntfx/bagccgop-base-bookworm --load -f Dockerfile.bookworm .
 ```
 
 Have any questions or need help? Chat with us [on Matrix](https://matrix.to/#/#bagccgop:matrix.org?via=matrix.org)!

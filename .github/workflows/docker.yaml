@@ -23,6 +23,10 @@ jobs:
             image: ghcr.io/pojntfx/bagccgop-base-bullseye
             arch: "linux/amd64"
             file: Dockerfile.bullseye
+          - src: .
+            image: ghcr.io/pojntfx/bagccgop-base-bookworm
+            arch: "linux/amd64"
+            file: Dockerfile.bookworm
 
     steps:
       - name: Maximize build space
