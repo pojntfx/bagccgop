@@ -5,7 +5,6 @@ Build for all `gccgo`-supported platforms by default, disable those which you do
 [![hydrun CI](https://github.com/pojntfx/bagccgop/actions/workflows/hydrun.yaml/badge.svg)](https://github.com/pojntfx/bagccgop/actions/workflows/hydrun.yaml)
 [![Docker CI](https://github.com/pojntfx/bagccgop/actions/workflows/docker.yaml/badge.svg)](https://github.com/pojntfx/bagccgop/actions/workflows/docker.yaml)
 [![Matrix](https://img.shields.io/matrix/bagccgop:matrix.org)](https://matrix.to/#/#bagccgop:matrix.org?via=matrix.org)
-[![Binary Downloads](https://img.shields.io/github/downloads/pojntfx/bagccgop/total?label=binary%20downloads)](https://github.com/pojntfx/bagccgop/releases)
 
 ## Overview
 
@@ -242,6 +241,6 @@ Have any questions or need help? Chat with us [on Matrix](https://matrix.to/#/#b
 
 ## License
 
-bagccgop (c) 2023 Felicitas Pojtinger and contributors
+bagccgop (c) 2024 Felicitas Pojtinger and contributors
 
 SPDX-License-Identifier: AGPL-3.0
