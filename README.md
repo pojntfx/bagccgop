@@ -21,7 +21,7 @@ $ curl -L -o /tmp/bagccgop "https://github.com/pojntfx/bagccgop/releases/latest/
 $ sudo install /tmp/bagccgop /usr/local/bin
 ```
 
-## Usage
+## Tutorial
 
 Let's assume we have a Go app called `hello-world`, and we want to build it for as many platforms as possible using bagccgop. This is the `main.go`:
 
